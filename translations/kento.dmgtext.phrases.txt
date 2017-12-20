@@ -1,0 +1,117 @@
+//**********************************************  Valid Colors	********************************************************
+// {NORMAL}, {DARKRED}, {PINK}, {YELLOW}, {GREEN}, {LIGHTGREEN}, {RED}, {GRAY}, {BLUE}, {DARKBLUE}, {PURPLE}, {ORANGE} *
+//**********************************************************************************************************************
+//                                     http://i.imgur.com/q2wb8Cu.png                                                  *
+//{NORMAL} = x01 | {DARKRED} = x02 | {PINK} = x03 | {GREEN} = x04 | {YELLOW} = x09 | {LIGHTGREEN} = x06 | {RED} = x07  *
+//{GRAY} = x08 | {BLUE} = x0B | {DARKBLUE} = x0C | {PURPLE} = x0E|  {ORANGE} = x10                                     *
+//**********************************************************************************************************************
+"Phrases"
+{
+	//******************* PrintToChat *******************
+	"Say Size"
+	{
+		"#format"		""
+		"en"			"{GREEN}[DMGTEXT] {NORMAL}Please type a number in chat to set damage text size. Type {PINK}!cancel{NORMAL} to cancel. {NORMAL}Default: 5"
+		"zho"			"{GREEN}[DMGTEXT] {NORMAL}請在對話框輸入傷害數字大小, 輸入{PINK}!cancel{NORMAL}取消, {NORMAL}預設: 5"
+	}
+	
+	"Say Normal Color"
+	{
+		"#format"		""
+		"en"			"{GREEN}[DMGTEXT] {NORMAL}Please type a rgb color in chat to set normal damage text color. Type {PINK}!cancel{NORMAL} to cancel. {NORMAL}Default: 255 255 255"
+		"zho"			"{GREEN}[DMGTEXT] {NORMAL}請在對話框輸入普通傷害數字RGB, 輸入{PINK}!cancel{NORMAL}取消, {NORMAL}預設: 255 255 255"
+	}
+	
+	"Say Kill Color"
+	{
+		"#format"		""
+		"en"			"{GREEN}[DMGTEXT] {NORMAL}Please type a rgb color in chat to set kill damage text color. Type {PINK}!cancel{NORMAL} to cancel. {NORMAL}Default: 255 0 0"
+		"zho"			"{GREEN}[DMGTEXT] {NORMAL}請在對話框輸入擊殺傷害數字RGB, 輸入{PINK}!cancel{NORMAL}取消, {NORMAL}預設: 255 0 0"
+	}
+	
+	"Say Cancel"
+	{
+		"#format"		""
+		"en"			"{GREEN}[DMGTEXT] {RED}Settings has been canceled."
+		"zho"			"{GREEN}[DMGTEXT] {RED}設定已取消."
+	}
+	
+	"Size Is"
+	{
+		"#format"		"{1:s}"
+		"en"			"{GREEN}[DMGTEXT] {LIGHTGREEN}Your damage text size is {1}."
+		"zho"			"{GREEN}[DMGTEXT] {LIGHTGREEN}你的傷害數字大小為{1}."
+	}
+	
+	"Normal RGB Color Is"
+	{
+		"#format"		"{1:s}"
+		"en"			"{GREEN}[DMGTEXT] {LIGHTGREEN}Your normal damage text color is {1}."
+		"zho"			"{GREEN}[DMGTEXT] {LIGHTGREEN}你的普通傷害數字顏色為{1}."
+	}
+	
+	"Kill RGB Color Is"
+	{
+		"#format"		"{1:s}"
+		"en"			"{GREEN}[DMGTEXT] {LIGHTGREEN}Your kill damage text color is {1}."
+		"zho"			"{GREEN}[DMGTEXT] {LIGHTGREEN}你的擊殺傷害數字顏色為{1}."
+	}
+	
+	//*********************** Menu ***********************
+	
+	"Menu Settings Title"
+	{
+		"#format"		""
+		"en"			"Damage Text Settings"
+		"zho"			"傷害數字設定"
+	}
+	
+	"Menu Settings Show"
+	{
+		"#format"		"{1:s},{2:s},{3:s}"
+		"en"			"Your Settings:\nShow damage text    Size:{1}\nNormal RGB:{2}    Kill RGB:{3}"
+		"zho"			"目前設定:\n顯示傷害數字    大小:{1}\n普通RGB:{2}    擊殺RGB:{3}"
+	}
+	
+	"Menu Settings Hide"
+	{
+		"#format"		"{1:s},{2:s},{3:s}"
+		"en"			"Your Settings:\nHide damage text    Size:{1}\nNormal RGB:{2}    Kill RGB:{3}"
+		"zho"			"目前設定:\n隱藏傷害數字    大小:{1}\n普通RGB:{2}    擊殺RGB:{3}"
+	}
+	
+	"Menu Hide Text"
+	{
+		"#format"		""
+		"en"			"Hide damage text"
+		"zho"			"隱藏傷害數字"
+	}
+	
+	"Menu Show Text"
+	{
+		"#format"		""
+		"en"			"Show damage text"
+		"zho"			"顯示傷害數字"
+	}
+	
+	"Menu Text Size"
+	{
+		"#format"		""
+		"en"			"Change damage text size"
+		"zho"			"改變傷害數字大小"
+	}
+	
+	"Menu Noraml Color"
+	{
+		"#format"		""
+		"en"			"Change normal damage text color"
+		"zho"			"改變普通傷害數字顏色"
+	}
+	
+	"Menu Kill Color"
+	{
+		"#format"		""
+		"en"			"Change kill damage text color"
+		"zho"			"改變擊殺傷害數字顏色"
+	}
+}	
