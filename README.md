@@ -1,2 +1,2 @@
 # CSGO-Damage-Text
-Show damage text like RPG games :D
+https://forums.alliedmods.net/showthread.php?t=303760
