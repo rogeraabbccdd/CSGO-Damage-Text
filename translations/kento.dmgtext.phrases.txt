@@ -83,14 +83,14 @@
 	"Menu Settings Show"
 	{
 		"#format"		"{1:s},{2:s},{3:s},{4:s}"
-		"en"			"Your Settings:\nShow damage text\nNormal Size:{1}    RGB:{2}\nKll Size:{3}    RGB:{4}"
+		"en"			"Your Settings:\nShow damage text\nNormal Size:{1}    RGB:{2}\nKill Size:{3}    RGB:{4}"
 		"zho"			"目前設定:\n顯示傷害數字\n普通大小:{1}    RGB:{2}\n擊殺大小:{3}    RGB:{4}"
 	}
 	
 	"Menu Settings Hide"
 	{
 		"#format"		"{1:s},{2:s},{3:s},{4:s}"
-		"en"			"Your Settings:\nHide damage text\nNormal Size:{1}    RGB:{2}\nKll Size:{3}    RGB:{4}"
+		"en"			"Your Settings:\nHide damage text\nNormal Size:{1}    RGB:{2}\nKill Size:{3}    RGB:{4}"
 		"zho"			"目前設定:\n隱藏傷害數字\n普通大小:{1}    RGB:{2}\n擊殺大小:{3}    RGB:{4}"
 	}
 	
