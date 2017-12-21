@@ -8,11 +8,18 @@
 "Phrases"
 {
 	//******************* PrintToChat *******************
-	"Say Size"
+	"Say Normal Size"
 	{
 		"#format"		""
-		"en"			"{GREEN}[DMGTEXT] {NORMAL}Please type a number in chat to set damage text size. Type {PINK}!cancel{NORMAL} to cancel. {NORMAL}Default: 5"
-		"zho"			"{GREEN}[DMGTEXT] {NORMAL}請在對話框輸入傷害數字大小, 輸入{PINK}!cancel{NORMAL}取消, {NORMAL}預設: 5"
+		"en"			"{GREEN}[DMGTEXT] {NORMAL}Please type a number in chat to set normal damage text size. Type {PINK}!cancel{NORMAL} to cancel. {NORMAL}Default: 5"
+		"zho"			"{GREEN}[DMGTEXT] {NORMAL}請在對話框輸入普通傷害數字大小, 輸入{PINK}!cancel{NORMAL}取消, {NORMAL}預設: 5"
+	}
+	
+	"Say Kill Size"
+	{
+		"#format"		""
+		"en"			"{GREEN}[DMGTEXT] {NORMAL}Please type a number in chat to set kill damage text size. Type {PINK}!cancel{NORMAL} to cancel. {NORMAL}Default: 8"
+		"zho"			"{GREEN}[DMGTEXT] {NORMAL}請在對話框輸入擊殺傷害數字大小, 輸入{PINK}!cancel{NORMAL}取消, {NORMAL}預設: 8"
 	}
 	
 	"Say Normal Color"
@@ -36,11 +43,18 @@
 		"zho"			"{GREEN}[DMGTEXT] {RED}設定已取消."
 	}
 	
-	"Size Is"
+	"Normal Size Is"
 	{
 		"#format"		"{1:s}"
-		"en"			"{GREEN}[DMGTEXT] {LIGHTGREEN}Your damage text size is {1}."
-		"zho"			"{GREEN}[DMGTEXT] {LIGHTGREEN}你的傷害數字大小為{1}."
+		"en"			"{GREEN}[DMGTEXT] {LIGHTGREEN}Your normal damage text size is {1}."
+		"zho"			"{GREEN}[DMGTEXT] {LIGHTGREEN}你的普通傷害數字大小為{1}."
+	}
+	
+	"Kill Size Is"
+	{
+		"#format"		"{1:s}"
+		"en"			"{GREEN}[DMGTEXT] {LIGHTGREEN}Your kill damage text size is {1}."
+		"zho"			"{GREEN}[DMGTEXT] {LIGHTGREEN}你的擊殺傷害數字大小為{1}."
 	}
 	
 	"Normal RGB Color Is"
@@ -68,16 +82,16 @@
 	
 	"Menu Settings Show"
 	{
-		"#format"		"{1:s},{2:s},{3:s}"
-		"en"			"Your Settings:\nShow damage text    Size:{1}\nNormal RGB:{2}    Kill RGB:{3}"
-		"zho"			"目前設定:\n顯示傷害數字    大小:{1}\n普通RGB:{2}    擊殺RGB:{3}"
+		"#format"		"{1:s},{2:s},{3:s},{4:s}"
+		"en"			"Your Settings:\nShow damage text\nNormal Size:{1}    RGB:{2}\nKll Size:{3}    RGB:{4}"
+		"zho"			"目前設定:\n顯示傷害數字\n普通大小:{1}    RGB:{2}\n擊殺大小:{3}    RGB:{4}"
 	}
 	
 	"Menu Settings Hide"
 	{
-		"#format"		"{1:s},{2:s},{3:s}"
-		"en"			"Your Settings:\nHide damage text    Size:{1}\nNormal RGB:{2}    Kill RGB:{3}"
-		"zho"			"目前設定:\n隱藏傷害數字    大小:{1}\n普通RGB:{2}    擊殺RGB:{3}"
+		"#format"		"{1:s},{2:s},{3:s},{4:s}"
+		"en"			"Your Settings:\nHide damage text\nNormal Size:{1}    RGB:{2}\nKll Size:{3}    RGB:{4}"
+		"zho"			"目前設定:\n隱藏傷害數字\n普通大小:{1}    RGB:{2}\n擊殺大小:{3}    RGB:{4}"
 	}
 	
 	"Menu Hide Text"
@@ -94,11 +108,18 @@
 		"zho"			"顯示傷害數字"
 	}
 	
-	"Menu Text Size"
+	"Menu Normal Size"
 	{
 		"#format"		""
-		"en"			"Change damage text size"
-		"zho"			"改變傷害數字大小"
+		"en"			"Change normal damage text size"
+		"zho"			"改變普通傷害數字大小"
+	}
+	
+	"Menu Kill Size"
+	{
+		"#format"		""
+		"en"			"Change kill damage text size"
+		"zho"			"改變擊殺傷害數字大小"
 	}
 	
 	"Menu Noraml Color"

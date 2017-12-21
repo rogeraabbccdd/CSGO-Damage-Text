@@ -2,25 +2,26 @@
 #include <sdktools>
 #include <sdkhooks>
 #include <kento_csgocolors>
+#include <clientprefs>
 
 #pragma newdecls required
 
+Handle Cookie_Show, Cookie_Size_Normal, Cookie_Size_Kill, Cookie_Color_Normal, Cookie_Color_Kill;
 bool text_show[MAXPLAYERS + 1];
-char text_size[MAXPLAYERS + 1][64];
+char text_size_normal[MAXPLAYERS + 1][64];
+char text_size_kill[MAXPLAYERS + 1][64];
 char text_color_normal[MAXPLAYERS + 1][64];
 char text_color_kill[MAXPLAYERS + 1][64];
 int SayingSettings[MAXPLAYERS + 1];
 
-ConVar Cvar_TableName;
-char Table_Name[200];
-
-Database ddb = null;
+ConVar Cvar_Flag;
+char Flag[AdminFlags_TOTAL];
 
 public Plugin myinfo =
 {
 	name = "[CS:GO] Damage Text",
 	author = "Kento",
-	version = "1.0",
+	version = "1.1",
 	description = "Show damage text like RPG games :D",
 	url = "http://steamcommunity.com/id/kentomatoryoshika/"
 };
@@ -32,135 +33,83 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_dmgtext", Command_DmgText, "Damage Text Settings");
 	RegConsoleCmd("say", Command_Say);
 	
+	Cookie_Show = RegClientCookie("dmgtext_show", "Show damage text or not", CookieAccess_Private);
+	Cookie_Size_Normal = RegClientCookie("dmgtext_size_normal", "Normal Damage text size", CookieAccess_Private);
+	Cookie_Size_Kill = RegClientCookie("dmgtext_size_kill", "Kill damage text size", CookieAccess_Private);
+	Cookie_Color_Normal = RegClientCookie("dmgtext_normal_color", "Noraml damage text rgb", CookieAccess_Private);
+	Cookie_Color_Kill = RegClientCookie("dmgtext_kill_color", "Kill damage text rgb", CookieAccess_Private);
+	
 	LoadTranslations("kento.dmgtext.phrases");
 	
-	Cvar_TableName = CreateConVar("sm_dmgtext_table", "dmgtext", "MySQL table name to save dmg text settings.");
+	Cvar_Flag = CreateConVar("sm_dmgtext_flag", "", "Flag to use damage text, blank = disabled");
+	Cvar_Flag.AddChangeHook(OnConVarChanged);
+	
+	AutoExecConfig(true, "kento_dmgtext");
+	
+	for(int i = 1; i <= MaxClients; i++)
+	{ 
+		if(IsValidClient(i) && !IsFakeClient(i))	OnClientCookiesCached(i);
+	}
 }
 
 public void OnClientPutInServer(int client)
 {
 	if(IsValidClient(client) && !IsFakeClient(client))
 	{
-		LoadClientSettings(client);
+		if (IsValidClient(client) && !IsFakeClient(client))	OnClientCookiesCached(client);
 	}
 }
+
+public void OnClientCookiesCached(int client)
+{
+	SayingSettings[client] = 0;
+	
+	char scookie[64];
+	GetClientCookie(client, Cookie_Show, scookie, sizeof(scookie));
+	if(!StrEqual(scookie, ""))
+	{
+		text_show[client] = view_as<bool>(StringToInt(scookie));
+	}
+	else	text_show[client] = true;
+		
+	GetClientCookie(client, Cookie_Size_Normal, scookie, sizeof(scookie));
+	if(!StrEqual(scookie, ""))
+	{
+		text_size_normal[client] = scookie;
+	}
+	else	text_size_normal[client] = "5";
+	
+	GetClientCookie(client, Cookie_Size_Kill, scookie, sizeof(scookie));
+	if(!StrEqual(scookie, ""))
+	{
+		text_size_kill[client] = scookie;
+	}
+	else	text_size_kill[client] = "8";
+	
+	GetClientCookie(client, Cookie_Color_Normal, scookie, sizeof(scookie));
+	if(!StrEqual(scookie, ""))
+	{
+		text_color_normal[client] = scookie;
+	}
+	else text_color_normal[client] = "255 255 255"
+	
+	GetClientCookie(client, Cookie_Color_Kill, scookie, sizeof(scookie));
+	if(!StrEqual(scookie, ""))
+	{
+		text_color_kill[client] = scookie;
+	}
+	else text_color_kill[client] = "255 0 0"
+}
+
 
 public void OnConfigsExecuted()
 {
-	Cvar_TableName.GetString(Table_Name, sizeof(Table_Name));
-	
-	if (SQL_CheckConfig("dmgtext"))
-	{
-		SQL_TConnect(OnSQLConnect, "dmgtext");
-	}
-	else if (!SQL_CheckConfig("dmgtext"))
-	{
-		SetFailState("Can't find an entry in your databases.cfg with the name \"dmgtext\".");
-		return;
-	}
+	Cvar_Flag.GetString(Flag, sizeof(Flag));
 }
 
-public void OnSQLConnect(Handle owner, Handle hndl, const char[] error, any data)
+public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
-	if (hndl == null)
-	{
-		SetFailState("(OnSQLConnect) Can't connect to mysql");
-		return;
-	}
-	
-	ddb = view_as<Database>(CloneHandle(hndl));
-	
-	CreateTable();
-}
-
-void CreateTable()
-{
-	char sQuery[1024];
-	Format(sQuery, sizeof(sQuery), 
-	"CREATE TABLE IF NOT EXISTS `%s`  \
-	( id INT NOT NULL AUTO_INCREMENT ,  \
-	steamid VARCHAR(64) NOT NULL ,  \
-	showtext INT NOT NULL ,  \
-	textsize INT NOT NULL ,  \
-	normal_color VARCHAR(64) NOT NULL ,  \
-	kill_color VARCHAR(64) NOT NULL ,  \
-	PRIMARY KEY (id))  \
-	ENGINE = InnoDB;", Table_Name);
-	
-	ddb.Query(SQL_CreateTable, sQuery);
-}
-
-public void SQL_CreateTable(Database db, DBResultSet results, const char[] error, any data)
-{
-	if (db == null || strlen(error) > 0)
-	{
-		SetFailState("(SQL_CreateTable) Fail at Query: %s", error);
-		return;
-	}
-	delete results;
-}
-
-void LoadClientSettings(int client)
-{
-	char sCommunityID[64];
-	if (!GetClientAuthId(client, AuthId_SteamID64, sCommunityID, sizeof(sCommunityID)))
-	{
-		LogError("Auth failed for client index %d", client);
-		return;
-	}
-	
-	char LoadQuery[512];
-	Format(LoadQuery, sizeof(LoadQuery), "SELECT * FROM `%s` WHERE steamid = '%s'", Table_Name, sCommunityID);
-	
-	ddb.Query(SQL_LoadClientStats, LoadQuery, GetClientUserId(client));
-}
-
-public void SQL_LoadClientStats(Database db, DBResultSet results, const char[] error, any data)
-{
-	int client = GetClientOfUserId(data);
-	
-	if (!IsValidClient(client) || IsFakeClient(client))
-		return;
-	
-	if (db == null || strlen(error) > 0)
-	{
-		SetFailState("(SQL_LoadClientStats) Fail at Query: %s", error);
-		return;
-	}
-	else
-	{
-		if(!results.HasResults || !results.FetchRow())
-		{
-			char sCommunityID[64];
-			GetClientAuthId(client, AuthId_SteamID64, sCommunityID, sizeof(sCommunityID));
-			
-			char InsertQuery[512];
-			Format(InsertQuery, sizeof(InsertQuery), "INSERT INTO `%s` VALUES(NULL,'%s','1','5', '255 255 255', '255 0 0');", Table_Name, sCommunityID);
-			ddb.Query(SQL_InsertCallback, InsertQuery, GetClientUserId(client));
-		}
-		else
-		{
-			int show;
-			show = results.FetchInt(2);
-			if(show == 1)	text_show[client] = true;
-			else text_show[client] = false;
-			
-			results.FetchString(3, text_size[client], 32);
-			results.FetchString(4, text_color_normal[client], 32);
-			results.FetchString(5, text_color_kill[client], 32);
-			
-			SayingSettings[client] = 0;
-		}
-	}
-}
-
-public void SQL_InsertCallback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if (db == null || strlen(error) > 0)
-	{
-		SetFailState("SQL_InsertCallback) Fail at Query: %s", error);
-		return;
-	}
+	if (convar == Cvar_Flag)	Cvar_Flag.GetString(Flag, sizeof(Flag));
 }
 
 public Action Event_PlayerHurt(Event event, const char[] name, bool dontBroadcast)
@@ -171,7 +120,7 @@ public Action Event_PlayerHurt(Event event, const char[] name, bool dontBroadcas
 	//int hitgroup = event.GetInt("hitgroup");
 	int health = GetClientHealth(victim);
 	
-	if(!IsValidClient(attacker) || IsFakeClient(attacker) || !text_show[attacker])	return;
+	if(!IsValidClient(attacker) || IsFakeClient(attacker) || !CanUseText(attacker) || !text_show[attacker])	return;
 	
 	float pos[3], clientEye[3], clientAngle[3];
 	GetClientEyePosition(attacker, clientEye);
@@ -197,10 +146,18 @@ stock int ShowDamageText(int client, float fPos[3], float fAngles[3], char[] sTe
 	if(entity == -1)	return entity; 
 
 	DispatchKeyValue(entity, "message", sText); 
-	DispatchKeyValue(entity, "textsize", text_size[client]);
 	
-	if(kill)	DispatchKeyValue(entity, "color", text_color_kill[client]); 
-	else DispatchKeyValue(entity, "color", text_color_normal[client]); 
+	
+	if(kill)
+	{
+		DispatchKeyValue(entity, "textsize", text_size_kill[client]);
+		DispatchKeyValue(entity, "color", text_color_kill[client]); 
+	}
+	else
+	{
+		DispatchKeyValue(entity, "textsize", text_size_normal[client]);
+		DispatchKeyValue(entity, "color", text_color_normal[client]); 
+	}
 
 	SetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity", client);  
 	
@@ -237,7 +194,8 @@ public Action Command_DmgText(int client, int args)
 {
 	if (IsValidClient(client) && !IsFakeClient(client))
 	{
-		ShowSettingsMenu(client);
+		if(!CanUseText(client))	CPrintToChat(client, "%T", "No Access", client);
+		else	ShowSettingsMenu(client);
 	}
 	return Plugin_Handled;
 }
@@ -251,8 +209,8 @@ public void ShowSettingsMenu(int client)
 	dmg_menu.SetTitle(dmgmenutitle);
 	
 	char settings[PLATFORM_MAX_PATH];
-	if(text_show[client])	Format(settings, sizeof(settings), "%T", "Menu Settings Show", client, text_size[client], text_color_normal[client], text_color_kill[client]);
-	else	Format(settings, sizeof(settings), "%T", "Menu Settings Hide", client, text_size[client], text_color_normal[client], text_color_kill[client]);
+	if(text_show[client])	Format(settings, sizeof(settings), "%T", "Menu Settings Show", client, text_size_normal[client], text_color_normal[client], text_size_kill[client], text_color_kill[client]);
+	else	Format(settings, sizeof(settings), "%T", "Menu Settings Hide", client, text_size_normal[client], text_color_normal[client], text_size_kill[client], text_color_kill[client]);
 	dmg_menu.AddItem("settings", settings);
 		
 	if(text_show[client])
@@ -268,9 +226,13 @@ public void ShowSettingsMenu(int client)
 		dmg_menu.AddItem("show", show);
 	}
 		
-	char size[PLATFORM_MAX_PATH];
-	Format(size, sizeof(size), "%T", "Menu Text Size", client);
-	dmg_menu.AddItem("size", size);
+	char normal_size[PLATFORM_MAX_PATH];
+	Format(normal_size, sizeof(normal_size), "%T", "Menu Normal Size", client);
+	dmg_menu.AddItem("normal_size", normal_size);
+	
+	char kill_size[PLATFORM_MAX_PATH];
+	Format(kill_size, sizeof(kill_size), "%T", "Menu Kill Size", client);
+	dmg_menu.AddItem("kill_size", kill_size);
 		
 	char normal_color[PLATFORM_MAX_PATH];
 	Format(normal_color, sizeof(normal_color), "%T", "Menu Noraml Color", client);
@@ -306,20 +268,25 @@ public int DMGMenuHandler(Menu menu, MenuAction action, int client,int param)
 				text_show[client] = false;
 				ShowSettingsMenu(client);
 			}
-			else if(StrEqual(menuitem, "size"))
+			else if(StrEqual(menuitem, "normal_size"))
 			{
-				CPrintToChat(client, "%T", "Say Size", client);
+				CPrintToChat(client, "%T", "Say Normal Size", client);
 				SayingSettings[client] = 1;
+			}
+			else if(StrEqual(menuitem, "kill_size"))
+			{
+				CPrintToChat(client, "%T", "Say Kill Size", client);
+				SayingSettings[client] = 2;
 			}
 			else if(StrEqual(menuitem, "normal_color"))
 			{
 				CPrintToChat(client, "%T", "Say Normal Color", client);
-				SayingSettings[client] = 2;
+				SayingSettings[client] = 3;
 			}
 			else if(StrEqual(menuitem, "kill_color"))
 			{
 				CPrintToChat(client, "%T", "Say Kill Color", client);
-				SayingSettings[client] = 3;
+				SayingSettings[client] = 4;
 			}
 		}
 	}
@@ -327,42 +294,9 @@ public int DMGMenuHandler(Menu menu, MenuAction action, int client,int param)
 
 public void OnClientDisconnect(int client)
 {
-	if(IsValidClient(client) && !IsFakeClient(client))	SaveClientSettings(client);
-}
-
-void SaveClientSettings(int client)
-{
-	char sCommunityID[64];
-	if (!GetClientAuthId(client, AuthId_SteamID64, sCommunityID, sizeof(sCommunityID)))
+	if(IsValidClient(client) && !IsFakeClient(client))
 	{
-		LogError("Auth failed for client index %d", client);
-		return;
-	}
-	
-	int show;
-	if(text_show[client])	show = 1;
-	else	show = 0;
-			
-	char SaveQuery[512];
-	Format(SaveQuery, sizeof(SaveQuery),
-	"UPDATE `%s` SET showtext = '%i', textsize = '%s', normal_color ='%s', kill_color='%s' WHERE steamid = '%s';",
-	Table_Name,
-	client,
-	show,
-	text_size[client], 
-	text_color_normal[client], 
-	text_color_kill[client], 
-	sCommunityID);
-	
-	ddb.Query(SQL_SaveCallback, SaveQuery, GetClientUserId(client))
-}
-
-public void SQL_SaveCallback(Database db, DBResultSet results, const char[] error, any data)
-{
-	if (db == null || strlen(error) > 0)
-	{
-		SetFailState("(SQL_SaveClientStats) Fail at Query: %s", error);
-		return;
+		SayingSettings[client] = 0;
 	}
 }
 
@@ -384,37 +318,47 @@ public Action Command_Say(int client, int args)
 	{
 		if(SayingSettings[client] == 1)
 		{
-			text_size[client] = arg;
+			text_size_normal[client] = arg;
 			SayingSettings[client] = 0;
-			
-			CPrintToChat(client, "%T", "Size Is", client, text_size[client]);
+			SetClientCookie(client, Cookie_Size_Normal, text_size_normal[client]);
+			CPrintToChat(client, "%T", "Normal Size Is", client, text_size_normal[client]);
+			ShowSettingsMenu(client);
 		}
 		else if(SayingSettings[client] == 2)
 		{
-			text_color_normal[client] = arg;
+			text_size_kill[client] = arg;
 			SayingSettings[client] = 0;
-			
-			CPrintToChat(client, "%T", "Normal RGB Color Is", client, text_color_normal[client]);
+			SetClientCookie(client, Cookie_Size_Kill, text_size_kill[client]);
+			CPrintToChat(client, "%T", "Kill Size Is", client, text_size_kill[client]);
+			ShowSettingsMenu(client);
 		}
 		else if(SayingSettings[client] == 3)
 		{
+			text_color_normal[client] = arg;
+			SayingSettings[client] = 0;
+			SetClientCookie(client, Cookie_Color_Normal, text_color_normal[client]);
+			CPrintToChat(client, "%T", "Normal RGB Color Is", client, text_color_normal[client]);
+			ShowSettingsMenu(client);
+		}
+		else if(SayingSettings[client] == 4)
+		{
 			text_color_kill[client] = arg;
 			SayingSettings[client] = 0;
-			
+			SetClientCookie(client, Cookie_Color_Kill, text_color_kill[client]);
 			CPrintToChat(client, "%T", "Kill RGB Color Is", client, text_color_kill[client]);
+			ShowSettingsMenu(client);
 		}
 	}
 	return Plugin_Handled;
 }
 
-public void OnMapEnd()
+stock bool CanUseText(int client)
 {
-	for (int i = 1; i <= MaxClients; i++) 
+	if(StrEqual(Flag, "") || StrEqual(Flag, " "))	return true;
+	else
 	{
-		if (IsValidClient(i) && !IsFakeClient(i))
-		{
-			SaveClientSettings(i);
-		}
+		if (CheckCommandAccess(client, "dmgtext", ReadFlagString(Flag), true))	return true;
+		else return false;
 	}
 }
 
