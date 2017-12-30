@@ -183,7 +183,7 @@ public bool HitSelf(int entity, int contentsMask, any data)
 	return true;
 }
 
-public Action SetTransmit(int client, int entity) 
+public Action SetTransmit(int entity, int client) 
 { 
 	int owner = GetEntPropEnt(entity, Prop_Data, "m_hOwnerEntity");
 	if(client != owner)	return Plugin_Handled;
