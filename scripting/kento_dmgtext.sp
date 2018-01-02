@@ -20,8 +20,8 @@ char Flag[AdminFlags_TOTAL];
 public Plugin myinfo =
 {
 	name = "[CS:GO] Damage Text",
-	author = "Kento",
-	version = "1.1",
+	author = "Kento, Kxnrl, IT-KiLLER",
+	version = "1.2",
 	description = "Show damage text like RPG games :D",
 	url = "http://steamcommunity.com/id/kentomatoryoshika/"
 };
@@ -116,12 +116,13 @@ public void Event_PlayerHurt(Event event, const char[] name, bool dontBroadcast)
 {
 	int victim = GetClientOfUserId(event.GetInt("userid"));
 	int attacker = GetClientOfUserId(event.GetInt("attacker"));
+	int idamage = event.GetInt("dmg_health");
 	char sWeapon[50];
 	event.GetString("weapon", sWeapon, 50, "");
 	//int hitgroup = event.GetInt("hitgroup");
 	int health = GetClientHealth(victim);
 
-	if(attacker == client || !IsValidClient(attacker) || IsFakeClient(attacker) || !CanUseText(attacker) || !text_show[attacker]) return;
+	if(attacker == victim || !IsValidClient(attacker) || IsFakeClient(attacker) || !CanUseText(attacker) || !text_show[attacker]) return;
 
 	ReplaceString(sWeapon, 50, "_projectile", "");
 
