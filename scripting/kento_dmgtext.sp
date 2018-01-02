@@ -112,16 +112,24 @@ public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] n
 	if (convar == Cvar_Flag)	Cvar_Flag.GetString(Flag, sizeof(Flag));
 }
 
-public Action Event_PlayerHurt(Event event, const char[] name, bool dontBroadcast)
+public void Event_PlayerHurt(Event event, const char[] name, bool dontBroadcast)
 {
 	int victim = GetClientOfUserId(event.GetInt("userid"));
 	int attacker = GetClientOfUserId(event.GetInt("attacker"));
-	int idamage = event.GetInt("dmg_health");
+	char sWeapon[50];
+	event.GetString("weapon", sWeapon, 50, "");
 	//int hitgroup = event.GetInt("hitgroup");
 	int health = GetClientHealth(victim);
-	
-	if(!IsValidClient(attacker) || IsFakeClient(attacker) || !CanUseText(attacker) || !text_show[attacker])	return;
-	
+
+	if(attacker == client || !IsValidClient(attacker) || IsFakeClient(attacker) || !CanUseText(attacker) || !text_show[attacker]) return;
+
+	ReplaceString(sWeapon, 50, "_projectile", "");
+
+	if(!sWeapon[0] || StrContains("inferno|molotov|decoy|flashbang|hegrenade|smokegrenade", sWeapon) != -1)
+	{
+		return;
+	}
+
 	float pos[3], clientEye[3], clientAngle[3];
 	GetClientEyePosition(attacker, clientEye);
 	GetClientEyeAngles(attacker, clientAngle);
