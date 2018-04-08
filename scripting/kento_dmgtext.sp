@@ -16,12 +16,16 @@ int SayingSettings[MAXPLAYERS + 1];
 
 ConVar Cvar_Flag;
 char Flag[AdminFlags_TOTAL];
+ConVar Cvar_Size;
+int MaxSize;
+
+Handle db = INVALID_HANDLE;
 
 public Plugin myinfo =
 {
 	name = "[CS:GO] Damage Text",
 	author = "Kento, Kxnrl, IT-KiLLER",
-	version = "1.2",
+	version = "1.3",
 	description = "Show damage text like RPG games :D",
 	url = "http://steamcommunity.com/id/kentomatoryoshika/"
 };
@@ -44,12 +48,23 @@ public void OnPluginStart()
 	Cvar_Flag = CreateConVar("sm_dmgtext_flag", "", "Flag to use damage text, blank = disabled");
 	Cvar_Flag.AddChangeHook(OnConVarChanged);
 	
+	Cvar_Size = CreateConVar("sm_dmgtext_size", "20", "Max size of damage text, 0 = disabled");
+	Cvar_Size.AddChangeHook(OnConVarChanged);
+	
 	AutoExecConfig(true, "kento_dmgtext");
 	
 	for(int i = 1; i <= MaxClients; i++)
 	{ 
 		if(IsValidClient(i) && !IsFakeClient(i))	OnClientCookiesCached(i);
 	}
+}
+
+public void OnMapStart()
+{
+	char[] error = new char[PLATFORM_MAX_PATH];
+	db = SQL_Connect("clientprefs", true, error, PLATFORM_MAX_PATH);
+	
+	if (!LibraryExists("clientprefs") || db == INVALID_HANDLE)	SetFailState("clientpref error: %s", error);
 }
 
 public void OnClientPutInServer(int client)
@@ -101,15 +116,49 @@ public void OnClientCookiesCached(int client)
 	else text_color_kill[client] = "255 0 0"
 }
 
-
 public void OnConfigsExecuted()
 {
 	Cvar_Flag.GetString(Flag, sizeof(Flag));
+	MaxSize = Cvar_Size.IntValue;
 }
 
 public void OnConVarChanged(ConVar convar, const char[] oldValue, const char[] newValue)
 {
 	if (convar == Cvar_Flag)	Cvar_Flag.GetString(Flag, sizeof(Flag));
+	
+	else if (convar == Cvar_Size)
+	{
+		MaxSize = Cvar_Size.IntValue;
+		
+		if(MaxSize > 0)
+		{
+			char[] query = new char[512];
+			FormatEx(query, 512, "UPDATE `sm_cookie_cache` SET `value`='%d' WHERE EXISTS( SELECT * FROM sm_cookies WHERE sm_cookie_cache.cookie_id = sm_cookies.id AND sm_cookies.name = 'dmgtext_size_normal') AND `value` > '%d';", MaxSize, MaxSize);
+			SQL_TQuery(db, ClientPref_PurgeCallback, query);
+	
+			char[] query2 = new char[512];
+			FormatEx(query2, 512, "UPDATE `sm_cookie_cache` SET `value`='%d' WHERE EXISTS( SELECT * FROM sm_cookies WHERE sm_cookie_cache.cookie_id = sm_cookies.id AND sm_cookies.name = 'dmgtext_size_kill') AND `value` > '%d';", MaxSize, MaxSize);
+			SQL_TQuery(db, ClientPref_PurgeCallback, query2);
+		}
+	}
+}
+
+public void ClientPref_PurgeCallback(Handle owner, Handle handle, const char[] error, any data)
+{
+	if (SQL_GetAffectedRows(owner))
+	{
+		char sMaxSize[8];
+		IntToString(MaxSize, sMaxSize, sizeof(sMaxSize));
+		
+		for(int i = 1; i <= MaxClients; i++)
+		{
+			if(IsValidClient(i) && !IsFakeClient(i))
+			{
+				if(StringToInt(text_size_normal[i]) > MaxSize)	text_size_normal[i] = sMaxSize;
+				if(StringToInt(text_size_kill[i]) > MaxSize)	text_size_kill[i] = sMaxSize;
+			}
+		}
+	}
 }
 
 public void Event_PlayerHurt(Event event, const char[] name, bool dontBroadcast)
@@ -122,14 +171,11 @@ public void Event_PlayerHurt(Event event, const char[] name, bool dontBroadcast)
 	//int hitgroup = event.GetInt("hitgroup");
 	int health = GetClientHealth(victim);
 
-	if(attacker == victim || !IsValidClient(attacker) || IsFakeClient(attacker) || !CanUseText(attacker) || !text_show[attacker]) return;
+	if(!IsValidClient(attacker) || attacker == victim || IsFakeClient(attacker) || !CanUseText(attacker) || !text_show[attacker]) return;
 
 	ReplaceString(sWeapon, 50, "_projectile", "");
 
-	if(!sWeapon[0] || StrContains("inferno|molotov|decoy|flashbang|hegrenade|smokegrenade", sWeapon) != -1)
-	{
-		return;
-	}
+	if(!sWeapon[0] || StrContains("inferno|molotov|decoy|flashbang|hegrenade|smokegrenade", sWeapon) != -1)	return;
 
 	float pos[3], clientEye[3], clientAngle[3];
 	GetClientEyePosition(attacker, clientEye);
@@ -156,7 +202,6 @@ stock int ShowDamageText(int client, float fPos[3], float fAngles[3], char[] sTe
 
 	DispatchKeyValue(entity, "message", sText); 
 	
-	
 	if(kill)
 	{
 		DispatchKeyValue(entity, "textsize", text_size_kill[client]);
@@ -169,18 +214,19 @@ stock int ShowDamageText(int client, float fPos[3], float fAngles[3], char[] sTe
 	}
 
 	SetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity", client);  
+	SetEdictFlags(entity, 0);
+	SetEdictFlags(entity, FL_EDICT_FULLCHECK);
 	
 	SDKHook(entity, SDKHook_SetTransmit, SetTransmit);
 	TeleportEntity(entity, fPos, fAngles, NULL_VECTOR);
 	
-	CreateTimer(0.5, KillText, EntIndexToEntRef(entity));
+	CreateTimer(0.5, KillText, entity);
     
 	return entity; 
 } 
 
-public Action KillText(Handle timer, int ref)
+public Action KillText(Handle timer, int entity)
 {
-	int entity = EntRefToEntIndex(ref);
 	if(entity == INVALID_ENT_REFERENCE || !IsValidEntity(entity))	return;
 	SDKUnhook(entity, SDKHook_SetTransmit, SetTransmit);
 	AcceptEntityInput(entity, "kill");
@@ -194,9 +240,9 @@ public bool HitSelf(int entity, int contentsMask, any data)
 
 public Action SetTransmit(int entity, int client) 
 { 
-	int owner = GetEntPropEnt(entity, Prop_Data, "m_hOwnerEntity");
-	if(client != owner)	return Plugin_Handled;
-	return Plugin_Continue; 
+	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
+	if(client != owner)	return Plugin_Handled;	// not draw
+	else return Plugin_Continue; // draw
 }  
 
 public Action Command_DmgText(int client, int args)
@@ -325,18 +371,27 @@ public Action Command_Say(int client, int args)
 	}
 	else
 	{
+		char sMaxSize[8];
+		IntToString(MaxSize, sMaxSize, sizeof(sMaxSize));
+		
 		if(SayingSettings[client] == 1)
 		{
-			text_size_normal[client] = arg;
 			SayingSettings[client] = 0;
+			
+			if(MaxSize > 0 && StringToInt(arg) > MaxSize)	text_size_normal[client] = sMaxSize;
+			else	text_size_normal[client] = arg;
+
 			SetClientCookie(client, Cookie_Size_Normal, text_size_normal[client]);
 			CPrintToChat(client, "%T", "Normal Size Is", client, text_size_normal[client]);
 			ShowSettingsMenu(client);
 		}
 		else if(SayingSettings[client] == 2)
 		{
-			text_size_kill[client] = arg;
 			SayingSettings[client] = 0;
+			
+			if(MaxSize > 0 && StringToInt(arg) > MaxSize)	text_size_normal[client] = sMaxSize;
+			else	text_size_normal[client] = arg;
+			
 			SetClientCookie(client, Cookie_Size_Kill, text_size_kill[client]);
 			CPrintToChat(client, "%T", "Kill Size Is", client, text_size_kill[client]);
 			ShowSettingsMenu(client);

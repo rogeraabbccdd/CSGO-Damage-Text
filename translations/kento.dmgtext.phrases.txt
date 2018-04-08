@@ -71,13 +71,6 @@
 		"zho"			"{GREEN}[DMGTEXT] {LIGHTGREEN}你的擊殺傷害數字顏色為{1}."
 	}
 	
-	"No Access"
-	{
-		"#format"		"{1:s}"
-		"en"			"{GREEN}[DMGTEXT] {RED}You do not have access to this command."
-		"zho"			"{GREEN}[DMGTEXT] {RED}你沒有使用這個指令的權限."
-	}
-	
 	//*********************** Menu ***********************
 	
 	"Menu Settings Title"
