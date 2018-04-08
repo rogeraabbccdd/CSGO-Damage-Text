@@ -171,7 +171,7 @@ public void Event_PlayerHurt(Event event, const char[] name, bool dontBroadcast)
 	//int hitgroup = event.GetInt("hitgroup");
 	int health = GetClientHealth(victim);
 
-	if(!IsValidClient(attacker) || attacker == victim || IsFakeClient(attacker) || !CanUseText(attacker) || !text_show[attacker]) return;
+	if(!IsValidClient(attacker) || IsFakeClient(attacker) || attacker == victim || !CanUseText(attacker) || !text_show[attacker]) return;
 
 	ReplaceString(sWeapon, 50, "_projectile", "");
 
@@ -214,19 +214,27 @@ stock int ShowDamageText(int client, float fPos[3], float fAngles[3], char[] sTe
 	}
 
 	SetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity", client);  
-	SetEdictFlags(entity, 0);
-	SetEdictFlags(entity, FL_EDICT_FULLCHECK);
+	SetFlags(entity);
 	
 	SDKHook(entity, SDKHook_SetTransmit, SetTransmit);
 	TeleportEntity(entity, fPos, fAngles, NULL_VECTOR);
 	
-	CreateTimer(0.5, KillText, entity);
+	CreateTimer(0.5, KillText, EntIndexToEntRef(entity));
     
 	return entity; 
 } 
 
-public Action KillText(Handle timer, int entity)
+public void SetFlags(int entity) 
+{ 
+	if (GetEdictFlags(entity) & FL_EDICT_ALWAYS) 
+	{ 
+		SetEdictFlags(entity, (GetEdictFlags(entity) ^ FL_EDICT_ALWAYS)); 
+	} 
+}
+
+public Action KillText(Handle timer, int ref)
 {
+	int entity = EntRefToEntIndex(ref);
 	if(entity == INVALID_ENT_REFERENCE || !IsValidEntity(entity))	return;
 	SDKUnhook(entity, SDKHook_SetTransmit, SetTransmit);
 	AcceptEntityInput(entity, "kill");
@@ -238,11 +246,15 @@ public bool HitSelf(int entity, int contentsMask, any data)
 	return true;
 }
 
+//https://forums.alliedmods.net/showthread.php?p=2483070
+//https://forums.alliedmods.net/showpost.php?p=2482807&postcount=16
+//https://github.com/bbennett905/store-aura/blob/master/store-aura.sp#L509
 public Action SetTransmit(int entity, int client) 
 { 
+	SetFlags(entity);
 	int owner = GetEntPropEnt(entity, Prop_Send, "m_hOwnerEntity");
-	if(client != owner)	return Plugin_Handled;	// not draw
-	else return Plugin_Continue; // draw
+	if(client == owner) return Plugin_Continue;	// draw
+	else return Plugin_Stop; // not draw
 }  
 
 public Action Command_DmgText(int client, int args)
@@ -398,16 +410,18 @@ public Action Command_Say(int client, int args)
 		}
 		else if(SayingSettings[client] == 3)
 		{
-			text_color_normal[client] = arg;
 			SayingSettings[client] = 0;
+			
+			text_color_normal[client] = arg;
 			SetClientCookie(client, Cookie_Color_Normal, text_color_normal[client]);
 			CPrintToChat(client, "%T", "Normal RGB Color Is", client, text_color_normal[client]);
 			ShowSettingsMenu(client);
 		}
 		else if(SayingSettings[client] == 4)
 		{
-			text_color_kill[client] = arg;
 			SayingSettings[client] = 0;
+			
+			text_color_kill[client] = arg;
 			SetClientCookie(client, Cookie_Color_Kill, text_color_kill[client]);
 			CPrintToChat(client, "%T", "Kill RGB Color Is", client, text_color_kill[client]);
 			ShowSettingsMenu(client);
