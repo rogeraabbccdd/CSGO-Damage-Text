@@ -25,7 +25,7 @@ public Plugin myinfo =
 {
 	name = "[CS:GO] Damage Text",
 	author = "Kento, Kxnrl, IT-KiLLER",
-	version = "1.3",
+	version = "1.4",
 	description = "Show damage text like RPG games :D",
 	url = "http://steamcommunity.com/id/kentomatoryoshika/"
 };
@@ -161,6 +161,39 @@ public void ClientPref_PurgeCallback(Handle owner, Handle handle, const char[] e
 	}
 }
 
+public void OnEntityCreated(int entity, const char[] classname)
+{
+	if(StrEqual(classname, "func_physbox", false) || StrEqual(classname, "func_physbox_multiplayer", false) || StrEqual(classname, "func_breakable", false))
+	{
+		if (IsValidEntity(entity))	SDKHook(entity, SDKHook_OnTakeDamage, OnTakeDamage);
+	}
+}
+
+public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+{
+    if (IsValidEntity(victim) && IsValidClient(attacker) && !IsFakeClient(attacker))
+    {
+		char sdamage[8];
+		int idamage = RoundToZero(damage);
+		IntToString(idamage, sdamage, sizeof(sdamage));
+		int health = GetEntProp(victim, Prop_Data, "m_iHealth");
+        
+		if (idamage > 0)
+        {
+			float pos[3], clientEye[3], clientAngle[3];
+			GetClientEyePosition(attacker, clientEye);
+			GetClientEyeAngles(attacker, clientAngle);
+			
+			TR_TraceRayFilter(clientEye, clientAngle, MASK_SOLID, RayType_Infinite, HitSelf, attacker);
+			
+			if (TR_DidHit(INVALID_HANDLE))	TR_GetEndPosition(pos);
+			
+			if(idamage > health)	ShowDamageText(attacker, pos, clientAngle, sdamage, true);
+			else	ShowDamageText(attacker, pos, clientAngle, sdamage, false);
+        }
+    }
+}  
+
 public void Event_PlayerHurt(Event event, const char[] name, bool dontBroadcast)
 {
 	int victim = GetClientOfUserId(event.GetInt("userid"));
@@ -168,7 +201,6 @@ public void Event_PlayerHurt(Event event, const char[] name, bool dontBroadcast)
 	int idamage = event.GetInt("dmg_health");
 	char sWeapon[50];
 	event.GetString("weapon", sWeapon, 50, "");
-	//int hitgroup = event.GetInt("hitgroup");
 	int health = GetClientHealth(victim);
 
 	if(!IsValidClient(attacker) || IsFakeClient(attacker) || attacker == victim || !CanUseText(attacker) || !text_show[attacker]) return;
@@ -401,8 +433,8 @@ public Action Command_Say(int client, int args)
 		{
 			SayingSettings[client] = 0;
 			
-			if(MaxSize > 0 && StringToInt(arg) > MaxSize)	text_size_normal[client] = sMaxSize;
-			else	text_size_normal[client] = arg;
+			if(MaxSize > 0 && StringToInt(arg) > MaxSize)	text_size_kill[client] = sMaxSize;
+			else	text_size_kill[client] = arg;
 			
 			SetClientCookie(client, Cookie_Size_Kill, text_size_kill[client]);
 			CPrintToChat(client, "%T", "Kill Size Is", client, text_size_kill[client]);
