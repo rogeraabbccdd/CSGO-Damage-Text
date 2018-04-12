@@ -25,7 +25,7 @@ public Plugin myinfo =
 {
 	name = "[CS:GO] Damage Text",
 	author = "Kento, Kxnrl, IT-KiLLER",
-	version = "1.4",
+	version = "1.4.1",
 	description = "Show damage text like RPG games :D",
 	url = "http://steamcommunity.com/id/kentomatoryoshika/"
 };
@@ -171,7 +171,7 @@ public void OnEntityCreated(int entity, const char[] classname)
 
 public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
 {
-    if (IsValidEntity(victim) && IsValidClient(attacker) && !IsFakeClient(attacker))
+    if (IsValidEntity(victim) && IsValidClient(attacker) && !IsFakeClient(attacker) && CanUseText(attacker) && text_show[attacker])
     {
 		char sdamage[8];
 		int idamage = RoundToZero(damage);
@@ -180,6 +180,11 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
         
 		if (idamage > 0)
         {
+			char sWeapon[50];
+			GetClientWeapon(attacker, sWeapon, sizeof(sWeapon));
+			ReplaceString(sWeapon, 50, "_projectile", "");
+			if(!sWeapon[0] || StrContains("inferno|molotov|decoy|flashbang|hegrenade|smokegrenade", sWeapon) != -1)	return;
+			
 			float pos[3], clientEye[3], clientAngle[3];
 			GetClientEyePosition(attacker, clientEye);
 			GetClientEyeAngles(attacker, clientAngle);
