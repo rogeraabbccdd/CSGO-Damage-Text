@@ -25,7 +25,7 @@ public Plugin myinfo =
 {
 	name = "[CS:GO] Damage Text",
 	author = "Kento, Kxnrl, IT-KiLLER",
-	version = "1.4.1",
+	version = "1.5",
 	description = "Show damage text like RPG games :D",
 	url = "http://steamcommunity.com/id/kentomatoryoshika/"
 };
@@ -169,32 +169,39 @@ public void OnEntityCreated(int entity, const char[] classname)
 	}
 }
 
-public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype)
+public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3])
 {
     if (IsValidEntity(victim) && IsValidClient(attacker) && !IsFakeClient(attacker) && CanUseText(attacker) && text_show[attacker])
     {
 		char sdamage[8];
 		int idamage = RoundToZero(damage);
 		IntToString(idamage, sdamage, sizeof(sdamage));
-		int health = GetEntProp(victim, Prop_Data, "m_iHealth");
-        
+		
 		if (idamage > 0)
         {
-			char sWeapon[50];
-			GetClientWeapon(attacker, sWeapon, sizeof(sWeapon));
-			ReplaceString(sWeapon, 50, "_projectile", "");
-			if(!sWeapon[0] || StrContains("inferno|molotov|decoy|flashbang|hegrenade|smokegrenade", sWeapon) != -1)	return;
-			
-			float pos[3], clientEye[3], clientAngle[3];
-			GetClientEyePosition(attacker, clientEye);
+			int health = GetEntProp(victim, Prop_Data, "m_iHealth");
+			float victimpos[3], clientAngle[3], clientpos[3];
+			GetEntPropVector(victim, Prop_Send, "m_vecOrigin", victimpos);
 			GetClientEyeAngles(attacker, clientAngle);
+			GetClientAbsOrigin(attacker, clientpos);
 			
-			TR_TraceRayFilter(clientEye, clientAngle, MASK_SOLID, RayType_Infinite, HitSelf, attacker);
+			//PrintToChat(attacker, "weapon %d, type %d", weapon , damagetype);
+			//PrintToChat(attacker, "Vic %f, %f, %f", victimpos[0], victimpos[1], victimpos[2]);
+			//PrintToChat(attacker, "DMG %f, %f, %f", damagePosition[0], damagePosition[1], damagePosition[2]);
+			//PrintToChat(attacker, "damageForce %f, %f, %f", damageForce[0], damageForce[1], damageForce[2]);
+
+			if(damagetype == 8)	return;	// inferno doesn't have damageposition and damageForce :(
 			
-			if (TR_DidHit(INVALID_HANDLE))	TR_GetEndPosition(pos);
-			
-			if(idamage > health)	ShowDamageText(attacker, pos, clientAngle, sdamage, true);
-			else	ShowDamageText(attacker, pos, clientAngle, sdamage, false);
+			if(weapon == -1 && damagetype == 64)	// grenades
+			{
+				if(idamage > health)	ShowDamageText(attacker, damagePosition, clientAngle, sdamage, true);
+				else	ShowDamageText(attacker, damagePosition, clientAngle, sdamage, false);
+			}
+			else if(weapon != -1)	// normal weapons
+			{
+				if(idamage > health)	ShowDamageText(attacker, damagePosition, clientAngle, sdamage, true);
+				else	ShowDamageText(attacker, damagePosition, clientAngle, sdamage, false);
+			}
         }
     }
 }  
@@ -212,21 +219,39 @@ public void Event_PlayerHurt(Event event, const char[] name, bool dontBroadcast)
 
 	ReplaceString(sWeapon, 50, "_projectile", "");
 
-	if(!sWeapon[0] || StrContains("inferno|molotov|decoy|flashbang|hegrenade|smokegrenade", sWeapon) != -1)	return;
-
-	float pos[3], clientEye[3], clientAngle[3];
-	GetClientEyePosition(attacker, clientEye);
-	GetClientEyeAngles(attacker, clientAngle);
-	
-	TR_TraceRayFilter(clientEye, clientAngle, MASK_SOLID, RayType_Infinite, HitSelf, attacker);
-	
-	if (TR_DidHit(INVALID_HANDLE))	TR_GetEndPosition(pos);
-	
-	char damage[8];
-	IntToString(idamage, damage, sizeof(damage));
-	
-	if(health < 1)	ShowDamageText(attacker, pos, clientAngle, damage, true);
-	else	ShowDamageText(attacker, pos, clientAngle, damage, false);
+	if (!sWeapon[0])	return;
+	if(StrContains("inferno|molotov|decoy|flashbang|hegrenade|smokegrenade", sWeapon) != -1)
+	{
+		float victimpos[3], clientAngle[3];
+		GetClientAbsOrigin(victim, victimpos);
+		GetClientEyeAngles(attacker, clientAngle);
+		
+		victimpos[0] += GetRandomFloat(-20.0, 20.0);
+		victimpos[1] += GetRandomFloat(-20.0, 20.0);
+		victimpos[2] += GetRandomFloat(10.0, 30.0);
+		
+		char damage[8];
+		IntToString(idamage, damage, sizeof(damage));
+		
+		if(health < 1)	ShowDamageText(attacker, victimpos, clientAngle, damage, true);
+		else	ShowDamageText(attacker, victimpos, clientAngle, damage, false);
+	}
+	else
+	{
+		float pos[3], clientEye[3], clientAngle[3];
+		GetClientEyePosition(attacker, clientEye);
+		GetClientEyeAngles(attacker, clientAngle);
+		
+		TR_TraceRayFilter(clientEye, clientAngle, MASK_SOLID, RayType_Infinite, HitSelf, attacker);
+		
+		if (TR_DidHit(INVALID_HANDLE))	TR_GetEndPosition(pos);
+		
+		char damage[8];
+		IntToString(idamage, damage, sizeof(damage));
+		
+		if(health < 1)	ShowDamageText(attacker, pos, clientAngle, damage, true);
+		else	ShowDamageText(attacker, pos, clientAngle, damage, false);
+	}
 }
 
 // Edit from
