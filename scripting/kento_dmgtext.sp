@@ -25,15 +25,13 @@ public Plugin myinfo =
 {
 	name = "[CS:GO] Damage Text",
 	author = "Kento, Kxnrl, IT-KiLLER",
-	version = "1.5",
+	version = "1.6",
 	description = "Show damage text like RPG games :D",
 	url = "http://steamcommunity.com/id/kentomatoryoshika/"
 };
 
 public void OnPluginStart() 
 {
-	HookEvent("player_hurt", Event_PlayerHurt, EventHookMode_Post);
-	
 	RegConsoleCmd("sm_dmgtext", Command_DmgText, "Damage Text Settings");
 	RegConsoleCmd("say", Command_Say);
 	
@@ -55,7 +53,11 @@ public void OnPluginStart()
 	
 	for(int i = 1; i <= MaxClients; i++)
 	{ 
-		if(IsValidClient(i) && !IsFakeClient(i))	OnClientCookiesCached(i);
+		if(IsValidClient(i))
+		{	
+			SDKHook(i, SDKHook_OnTakeDamage, OnTakeDamage);
+			if(!IsFakeClient(i))	OnClientCookiesCached(i);
+		}
 	}
 }
 
@@ -71,7 +73,8 @@ public void OnClientPutInServer(int client)
 {
 	if(IsValidClient(client) && !IsFakeClient(client))
 	{
-		if (IsValidClient(client) && !IsFakeClient(client))	OnClientCookiesCached(client);
+		SDKHook(client, SDKHook_OnTakeDamage, OnTakeDamage);
+		if (!IsFakeClient(client))	OnClientCookiesCached(client);
 	}
 }
 
@@ -169,9 +172,9 @@ public void OnEntityCreated(int entity, const char[] classname)
 	}
 }
 
-public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3])
+public Action OnTakeDamage (int victim, int &attacker, int &inflictor, float &damage, int &damagetype, int &weapon, float damageForce[3], float damagePosition[3])
 {
-    if (IsValidEntity(victim) && IsValidClient(attacker) && !IsFakeClient(attacker) && CanUseText(attacker) && text_show[attacker])
+    if (IsValidEntity(victim) && IsValidClient(attacker) && CanUseText(attacker) && text_show[attacker])
     {
 		char sdamage[8];
 		int idamage = RoundToZero(damage);
@@ -205,54 +208,6 @@ public Action OnTakeDamage(int victim, int &attacker, int &inflictor, float &dam
         }
     }
 }  
-
-public void Event_PlayerHurt(Event event, const char[] name, bool dontBroadcast)
-{
-	int victim = GetClientOfUserId(event.GetInt("userid"));
-	int attacker = GetClientOfUserId(event.GetInt("attacker"));
-	int idamage = event.GetInt("dmg_health");
-	char sWeapon[50];
-	event.GetString("weapon", sWeapon, 50, "");
-	int health = GetClientHealth(victim);
-
-	if(!IsValidClient(attacker) || IsFakeClient(attacker) || attacker == victim || !CanUseText(attacker) || !text_show[attacker]) return;
-
-	ReplaceString(sWeapon, 50, "_projectile", "");
-
-	if (!sWeapon[0])	return;
-	if(StrContains("inferno|molotov|decoy|flashbang|hegrenade|smokegrenade", sWeapon) != -1)
-	{
-		float victimpos[3], clientAngle[3];
-		GetClientAbsOrigin(victim, victimpos);
-		GetClientEyeAngles(attacker, clientAngle);
-		
-		victimpos[0] += GetRandomFloat(-20.0, 20.0);
-		victimpos[1] += GetRandomFloat(-20.0, 20.0);
-		victimpos[2] += GetRandomFloat(10.0, 30.0);
-		
-		char damage[8];
-		IntToString(idamage, damage, sizeof(damage));
-		
-		if(health < 1)	ShowDamageText(attacker, victimpos, clientAngle, damage, true);
-		else	ShowDamageText(attacker, victimpos, clientAngle, damage, false);
-	}
-	else
-	{
-		float pos[3], clientEye[3], clientAngle[3];
-		GetClientEyePosition(attacker, clientEye);
-		GetClientEyeAngles(attacker, clientAngle);
-		
-		TR_TraceRayFilter(clientEye, clientAngle, MASK_SOLID, RayType_Infinite, HitSelf, attacker);
-		
-		if (TR_DidHit(INVALID_HANDLE))	TR_GetEndPosition(pos);
-		
-		char damage[8];
-		IntToString(idamage, damage, sizeof(damage));
-		
-		if(health < 1)	ShowDamageText(attacker, pos, clientAngle, damage, true);
-		else	ShowDamageText(attacker, pos, clientAngle, damage, false);
-	}
-}
 
 // Edit from
 // https://forums.alliedmods.net/showpost.php?p=2523113&postcount=8
@@ -391,11 +346,13 @@ public int DMGMenuHandler(Menu menu, MenuAction action, int client,int param)
 			{
 				text_show[client] = true;
 				ShowSettingsMenu(client);
+				SetClientCookie(client, Cookie_Show, "1");
 			}
 			else if(StrEqual(menuitem, "hide"))
 			{
 				text_show[client] = false;
 				ShowSettingsMenu(client);
+				SetClientCookie(client, Cookie_Show, "0");
 			}
 			else if(StrEqual(menuitem, "normal_size"))
 			{
