@@ -3,6 +3,7 @@
 #include <sdkhooks>
 #include <kento_csgocolors>
 #include <clientprefs>
+#include <smlib>
 
 #pragma newdecls required
 
@@ -24,7 +25,7 @@ Handle db = INVALID_HANDLE;
 public Plugin myinfo =
 {
 	name = "[CS:GO] Damage Text",
-	author = "Kento, Kxnrl, IT-KiLLER",
+	author = "Kento, Kxnrl, IT-KiLLER, root88",
 	version = "1.6",
 	description = "Show damage text like RPG games :D",
 	url = "http://steamcommunity.com/id/kentomatoryoshika/"
@@ -197,13 +198,13 @@ public Action OnTakeDamage (int victim, int &attacker, int &inflictor, float &da
 			
 			if(weapon == -1 && damagetype == 64)	// grenades
 			{
-				if(idamage > health)	ShowDamageText(attacker, damagePosition, clientAngle, sdamage, true);
-				else	ShowDamageText(attacker, damagePosition, clientAngle, sdamage, false);
+				if(idamage > health)	ShowDamageText(attacker, damagePosition, clientAngle, sdamage, true, victim);
+				else	ShowDamageText(attacker, damagePosition, clientAngle, sdamage, false, victim);
 			}
 			else if(weapon != -1)	// normal weapons
 			{
-				if(idamage > health)	ShowDamageText(attacker, damagePosition, clientAngle, sdamage, true);
-				else	ShowDamageText(attacker, damagePosition, clientAngle, sdamage, false);
+				if(idamage > health)	ShowDamageText(attacker, damagePosition, clientAngle, sdamage, true, victim);
+				else	ShowDamageText(attacker, damagePosition, clientAngle, sdamage, false, victim);
 			}
         }
     }
@@ -211,22 +212,31 @@ public Action OnTakeDamage (int victim, int &attacker, int &inflictor, float &da
 
 // Edit from
 // https://forums.alliedmods.net/showpost.php?p=2523113&postcount=8
-stock int ShowDamageText(int client, float fPos[3], float fAngles[3], char[] sText, bool kill) 
+stock int ShowDamageText(int client, float fPos[3], float fAngles[3], char[] sText, bool kill, int victim) 
 { 
 	int entity = CreateEntityByName("point_worldtext"); 
 	
 	if(entity == -1)	return entity; 
-
+	float distance;
+	char stext_size_kill[8];
+	char stext_size_normal[8];
+	distance = Entity_GetDistance(client, victim);
 	DispatchKeyValue(entity, "message", sText); 
+	
+	FloatToString(0.0015*distance*StringToFloat(text_size_kill[client]), stext_size_kill, sizeof(stext_size_kill));
+	FloatToString(0.0015*distance*StringToFloat(text_size_normal[client]), stext_size_normal, sizeof(stext_size_normal));
 	
 	if(kill)
 	{
-		DispatchKeyValue(entity, "textsize", text_size_kill[client]);
+		DispatchKeyValue(entity, "textsize", stext_size_kill);
 		DispatchKeyValue(entity, "color", text_color_kill[client]); 
+		//debug distance
+		//PrintToChat(client, "Kill distance: %f", distance);
+		//1500.0 - very long distance, <100 - very close distance
 	}
 	else
 	{
-		DispatchKeyValue(entity, "textsize", text_size_normal[client]);
+		DispatchKeyValue(entity, "textsize", stext_size_normal);
 		DispatchKeyValue(entity, "color", text_color_normal[client]); 
 	}
 
