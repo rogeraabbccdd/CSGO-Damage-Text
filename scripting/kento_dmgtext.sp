@@ -33,6 +33,8 @@ public Plugin myinfo =
 
 public void OnPluginStart() 
 {
+	HookEvent("player_hurt", Event_PlayerHurt, EventHookMode_Post);
+	
 	RegConsoleCmd("sm_dmgtext", Command_DmgText, "Damage Text Settings");
 	RegConsoleCmd("say", Command_Say);
 	
@@ -209,6 +211,54 @@ public Action OnTakeDamage (int victim, int &attacker, int &inflictor, float &da
         }
     }
 }  
+
+public void Event_PlayerHurt(Event event, const char[] name, bool dontBroadcast)
+{
+	int victim = GetClientOfUserId(event.GetInt("userid"));
+	int attacker = GetClientOfUserId(event.GetInt("attacker"));
+	int idamage = event.GetInt("dmg_health");
+	char sWeapon[50];
+	event.GetString("weapon", sWeapon, 50, "");
+	int health = GetClientHealth(victim);
+
+	if(!IsValidClient(attacker) || IsFakeClient(attacker) || attacker == victim || !CanUseText(attacker) || !text_show[attacker]) return;
+
+	ReplaceString(sWeapon, 50, "_projectile", "");
+
+	if (!sWeapon[0])	return;
+	if(StrContains("inferno|molotov|decoy|flashbang|hegrenade|smokegrenade", sWeapon) != -1)
+	{
+		float victimpos[3], clientAngle[3];
+		GetClientAbsOrigin(victim, victimpos);
+		GetClientEyeAngles(attacker, clientAngle);
+		
+		victimpos[0] += GetRandomFloat(-20.0, 20.0);
+		victimpos[1] += GetRandomFloat(-20.0, 20.0);
+		victimpos[2] += GetRandomFloat(10.0, 30.0);
+		
+		char damage[8];
+		IntToString(idamage, damage, sizeof(damage));
+		
+		if(health < 1)	ShowDamageText(attacker, victimpos, clientAngle, damage, true, victim);
+		else	ShowDamageText(attacker, victimpos, clientAngle, damage, false, victim);
+	}
+	else
+	{
+		float pos[3], clientEye[3], clientAngle[3];
+		GetClientEyePosition(attacker, clientEye);
+		GetClientEyeAngles(attacker, clientAngle);
+		
+		TR_TraceRayFilter(clientEye, clientAngle, MASK_SOLID, RayType_Infinite, HitSelf, attacker);
+		
+		if (TR_DidHit(INVALID_HANDLE))	TR_GetEndPosition(pos);
+		
+		char damage[8];
+		IntToString(idamage, damage, sizeof(damage));
+		
+		if(health < 1)	ShowDamageText(attacker, pos, clientAngle, damage, true, victim);
+		else	ShowDamageText(attacker, pos, clientAngle, damage, false, victim);
+	}
+}
 
 // Edit from
 // https://forums.alliedmods.net/showpost.php?p=2523113&postcount=8
